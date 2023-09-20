@@ -1,7 +1,11 @@
 [package]
 name = "serde_zon"
-version = "0.1.0"
+version = "0.0.1"
 edition = "2021"
+license = "MPL-2.0"
+description = "Experimental serde library for serializing and deserializing the Zig programming language's ZON format."
+repository = "https://github.com/Lamby777/serde_zon/"
+keywords = ["zig", "zon", "serde"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
