@@ -1,9 +1,34 @@
+//! Serializer stuff
+//!
+//! important links:
+//! https://serde.rs/impl-serializer.html
+//! https://github.com/ziglang/zig/issues/14532
+//!
+//! stuff allowed in zon (from above link):
+//! - string
+//! - boolean
+//! - integer
+//! - float
+//! - null
+//! - undefined
+//! - anonymous struct
+//! - tuple
+//! - anonymous enum
+//!
+//! type mappings:
+//! (u|i)(8|16|32|64)   -> integer
+//! String/&str         -> string
+//! bool                -> boolean
+//! f32/f64             -> float
+//! Option::None        -> null      (maybe???)
+//! MaybeUninit::uninit -> undefined (maybe??? can you even detect uninit data?!)
+//! Rust struct         -> anonymous struct literal with field names
+//! Rust tuple          -> tuple literal
+//! Rust enum           -> anonymous enum literal (if possible)
+
 use serde::{ser, Serialize};
 
 use crate::error::{Error, Result};
-
-// Using https://serde.rs/impl-serializer.html
-// as a starting point for this project...
 
 pub struct Serializer {
     // This string starts empty and JSON is appended as values are serialized.
@@ -25,15 +50,7 @@ pub fn to_string(value: &impl Serialize) -> Result<String> {
 }
 
 impl<'a> ser::Serializer for &'a mut Serializer {
-    // The output type produced by this `Serializer` during successful
-    // serialization. Most serializers that produce text or binary output should
-    // set `Ok = ()` and serialize into an `io::Write` or buffer contained
-    // within the `Serializer` instance, as happens here. Serializers that build
-    // in-memory data structures may be simplified by using `Ok` to propagate
-    // the data structure around.
     type Ok = ();
-
-    // The error type when some error occurs during serialization.
     type Error = Error;
 
     // Associated types for keeping track of additional state while serializing
