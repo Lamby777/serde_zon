@@ -255,7 +255,7 @@ impl<'a> ser::Serializer for &'a mut Serializer {
         variant: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeTupleVariant> {
-        self.output += "{";
+        self.output += ".{";
         variant.serialize(&mut *self)?;
         self.output += "=.{";
         Ok(self)
@@ -380,14 +380,14 @@ impl<'a> ser::SerializeTupleVariant for &'a mut Serializer {
     where
         T: ?Sized + Serialize,
     {
-        if !self.output.ends_with('[') {
+        if !self.output.ends_with('{') {
             self.output += ",";
         }
         value.serialize(&mut **self)
     }
 
     fn end(self) -> Result<()> {
-        self.output += "]}";
+        self.output += "}}";
         Ok(())
     }
 }
