@@ -26,6 +26,33 @@ use serde::{ser, Serialize};
 
 use crate::error::{Error, Result};
 
+/// I just realized this is mostly for deserializing, not serializing...
+/// But it's generally the right sort of idea.
+/// The perks of being severely sleep-deprived. :3
+fn key_to_zon(v: &str) -> String {
+    let mut res = "".to_owned();
+
+    let mut it = v.chars();
+    while let Some(ch) = it.next() {
+        match ch {
+            '\\' => {
+                // escape
+                let _ch = it.next();
+
+                // escape shit
+                todo!()
+            }
+
+            _ => {
+                // probably fine to return char unless it's a quote
+                res.push(ch);
+            }
+        }
+    }
+
+    res
+}
+
 pub struct Serializer {
     // This string starts empty and JSON is appended as values are serialized.
     output: String,
@@ -128,9 +155,7 @@ impl<'a> ser::Serializer for &'a mut Serializer {
     // get the idea. For example it would emit invalid JSON if the input string
     // contains a '"' character.
     fn serialize_str(self, v: &str) -> Result<()> {
-        self.output += "\"";
-        self.output += v;
-        self.output += "\"";
+        self.output += &key_to_zon(v);
         Ok(())
     }
 
@@ -449,9 +474,11 @@ impl<'a> ser::SerializeStruct for &'a mut Serializer {
     where
         T: ?Sized + Serialize,
     {
+        // put a comma if not first element
         if !self.output.ends_with('{') {
             self.output += ",";
         }
+
         key.serialize(&mut **self)?;
         self.output += "=";
         value.serialize(&mut **self)
