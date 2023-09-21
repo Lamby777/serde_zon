@@ -214,26 +214,18 @@ impl<'a> ser::Serializer for &'a mut Serializer {
     where
         T: ?Sized + Serialize,
     {
-        self.output += "{";
+        self.output += ".{";
         variant.serialize(&mut *self)?;
-        self.output += ":";
+        self.output += "=";
         value.serialize(&mut *self)?;
         self.output += "}";
         Ok(())
     }
 
-    // Now we get to the serialization of compound types.
-    //
-    // The start of the sequence, each value, and the end are three separate
-    // method calls. This one is responsible only for serializing the start,
-    // which in JSON is `[`.
-    //
-    // The length of the sequence may or may not be known ahead of time. This
-    // doesn't make a difference in JSON because the length is not represented
-    // explicitly in the serialized form. Some serializers may only be able to
-    // support sequences for which the length is known up front.
+    /// Rust | [ $value, $value, ... ]
+    /// ZON  | .{ $value, $value, ... }
     fn serialize_seq(self, _len: Option<usize>) -> Result<Self::SerializeSeq> {
-        self.output += "[";
+        self.output += ".{";
         Ok(self)
     }
 
@@ -265,13 +257,13 @@ impl<'a> ser::Serializer for &'a mut Serializer {
     ) -> Result<Self::SerializeTupleVariant> {
         self.output += "{";
         variant.serialize(&mut *self)?;
-        self.output += ":[";
+        self.output += "=.{";
         Ok(self)
     }
 
-    // Maps are represented in JSON as `{ K: V, K: V, ... }`.
+    // Maps are represented in JSON as `.{ K: V, K: V, ... }`.
     fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap> {
-        self.output += "{";
+        self.output += ".{";
         Ok(self)
     }
 
@@ -284,7 +276,7 @@ impl<'a> ser::Serializer for &'a mut Serializer {
         self.serialize_map(Some(len))
     }
 
-    // Struct variants are represented in JSON as `{ NAME: { K: V, ... } }`.
+    // Struct variants are represented in ZON as `.{ NAME = .{ K: V, ... } }`.
     // This is the externally tagged representation.
     fn serialize_struct_variant(
         self,
@@ -293,9 +285,9 @@ impl<'a> ser::Serializer for &'a mut Serializer {
         variant: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeStructVariant> {
-        self.output += "{";
+        self.output += ".{";
         variant.serialize(&mut *self)?;
-        self.output += ":{";
+        self.output += "=.{";
         Ok(self)
     }
 }
@@ -308,9 +300,7 @@ impl<'a> ser::Serializer for &'a mut Serializer {
 // This impl is SerializeSeq so these methods are called after `serialize_seq`
 // is called on the Serializer.
 impl<'a> ser::SerializeSeq for &'a mut Serializer {
-    // Must match the `Ok` type of the serializer.
     type Ok = ();
-    // Must match the `Error` type of the serializer.
     type Error = Error;
 
     // Serialize a single element of the sequence.
@@ -318,7 +308,7 @@ impl<'a> ser::SerializeSeq for &'a mut Serializer {
     where
         T: ?Sized + Serialize,
     {
-        if !self.output.ends_with('[') {
+        if !self.output.ends_with('{') {
             self.output += ",";
         }
         value.serialize(&mut **self)
@@ -326,7 +316,7 @@ impl<'a> ser::SerializeSeq for &'a mut Serializer {
 
     // Close the sequence.
     fn end(self) -> Result<()> {
-        self.output += "]";
+        self.output += "}";
         Ok(())
     }
 }
@@ -340,14 +330,14 @@ impl<'a> ser::SerializeTuple for &'a mut Serializer {
     where
         T: ?Sized + Serialize,
     {
-        if !self.output.ends_with('[') {
+        if !self.output.ends_with('{') {
             self.output += ",";
         }
         value.serialize(&mut **self)
     }
 
     fn end(self) -> Result<()> {
-        self.output += "]";
+        self.output += "}";
         Ok(())
     }
 }
@@ -361,14 +351,14 @@ impl<'a> ser::SerializeTupleStruct for &'a mut Serializer {
     where
         T: ?Sized + Serialize,
     {
-        if !self.output.ends_with('[') {
+        if !self.output.ends_with('{') {
             self.output += ",";
         }
         value.serialize(&mut **self)
     }
 
     fn end(self) -> Result<()> {
-        self.output += "]";
+        self.output += "}";
         Ok(())
     }
 }
@@ -463,7 +453,7 @@ impl<'a> ser::SerializeStruct for &'a mut Serializer {
             self.output += ",";
         }
         key.serialize(&mut **self)?;
-        self.output += ":";
+        self.output += "=";
         value.serialize(&mut **self)
     }
 
@@ -487,7 +477,7 @@ impl<'a> ser::SerializeStructVariant for &'a mut Serializer {
             self.output += ",";
         }
         key.serialize(&mut **self)?;
-        self.output += ":";
+        self.output += "=";
         value.serialize(&mut **self)
     }
 
@@ -511,7 +501,7 @@ fn test_struct() {
         int: 1,
         seq: vec!["a", "b"],
     };
-    let expected = r#"{"int":1,"seq":["a","b"]}"#;
+    let expected = r#".{int=1,seq=.{"a","b"}}"#;
     assert_eq!(to_string(&test).unwrap(), expected);
 }
 
@@ -530,14 +520,14 @@ fn test_enum() {
     assert_eq!(to_string(&u).unwrap(), expected);
 
     let n = E::Newtype(1);
-    let expected = r#"{"Newtype":1}"#;
+    let expected = r#".{"Newtype"=1}"#;
     assert_eq!(to_string(&n).unwrap(), expected);
 
     let t = E::Tuple(1, 2);
-    let expected = r#"{"Tuple":[1,2]}"#;
+    let expected = r#".{"Tuple"=.{1,2}}"#;
     assert_eq!(to_string(&t).unwrap(), expected);
 
     let s = E::Struct { a: 1 };
-    let expected = r#"{"Struct":{"a":1}}"#;
+    let expected = r#".{"Struct"=.{"a"=1}}"#;
     assert_eq!(to_string(&s).unwrap(), expected);
 }
