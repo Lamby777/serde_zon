@@ -1,6 +1,6 @@
 [package]
 name = "serde_zon"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2021"
 license = "MPL-2.0"
 description = "Experimental serde library for serializing and deserializing the Zig programming language's ZON format."
