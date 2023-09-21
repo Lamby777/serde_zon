@@ -16,11 +16,7 @@
 //! - anonymous enum
 //!
 //! type mappings:
-//! (u|i)(8|16|32|64)   -> integer
-//! String/&str         -> string
-//! bool                -> boolean
-//! f32/f64             -> float
-//! Option::None        -> null      (maybe???)
+//! String/&str         -> string (escapes need fixing)
 //! MaybeUninit::uninit -> undefined (maybe??? can you even detect uninit data?!)
 //! Rust struct         -> anonymous struct literal with field names
 //! Rust tuple          -> tuple literal
@@ -150,16 +146,15 @@ impl<'a> ser::Serializer for &'a mut Serializer {
         seq.end()
     }
 
-    // An absent optional is represented as the JSON `null`.
+    /// Rust | None
+    /// ZON  | null
     fn serialize_none(self) -> Result<()> {
-        self.serialize_unit()
+        self.output += "null";
+        Ok(())
     }
 
-    // A present optional is represented as just the contained value. Note that
-    // this is a lossy representation. For example the values `Some(())` and
-    // `None` both serialize as just `null`. Unfortunately this is typically
-    // what people expect when working with JSON. Other formats are encouraged
-    // to behave more intelligently if possible.
+    /// Rust | Some($value)
+    /// ZON  | $value
     fn serialize_some<T>(self, value: &T) -> Result<()>
     where
         T: ?Sized + Serialize,
@@ -167,17 +162,18 @@ impl<'a> ser::Serializer for &'a mut Serializer {
         value.serialize(self)
     }
 
-    // In Serde, unit means an anonymous value containing no data. Map this to
-    // JSON as `null`.
+    /// Rust | ()
+    /// ZON  | .{}
     fn serialize_unit(self) -> Result<()> {
-        self.output += "null";
+        // TODO how tf do you tell if .{} is a unit or a unit struct?
+        self.output += ".{}";
         Ok(())
     }
 
-    // Unit struct means a named value containing no data. Again, since there is
-    // no data, map this to JSON as `null`. There is no need to serialize the
-    // name in most formats.
+    /// Rust | StructName {}
+    /// ZON  | .{}
     fn serialize_unit_struct(self, _name: &'static str) -> Result<()> {
+        // TODO see above
         self.serialize_unit()
     }
 
@@ -443,7 +439,7 @@ impl<'a> ser::SerializeMap for &'a mut Serializer {
     where
         T: ?Sized + Serialize,
     {
-        self.output += ":";
+        self.output += "=";
         value.serialize(&mut **self)
     }
 
