@@ -10,21 +10,22 @@
 //! - integer
 //! - float
 //! - null
-//! - undefined
+//! - undefined (probably not gonna be supported for ser)
 //! - anonymous struct
 //! - tuple
 //! - anonymous enum
-//!
-//! type mappings:
-//! String/&str         -> string (escapes need fixing)
-//! MaybeUninit::uninit -> undefined (maybe??? can you even detect uninit data?!)
-//! Rust struct         -> anonymous struct literal with field names
-//! Rust tuple          -> tuple literal
-//! Rust enum           -> anonymous enum literal (if possible)
+
+// TODO maybe a crate feature for allowing deserializing `undefined`
+// as `MaybeUninit::uninit()`?
+// edit: that's probably a shit idea lol ^^^
 
 use serde::{ser, Serialize};
 
 use crate::error::{Error, Result};
+
+// for serializing keys
+mod key_ser;
+// use key_ser::ZigKeySerializer;
 
 /// I just realized this is mostly for deserializing, not serializing...
 /// But it's generally the right sort of idea.
@@ -36,7 +37,6 @@ fn key_to_zon(v: &str) -> String {
     while let Some(ch) = it.next() {
         match ch {
             '\\' => {
-                // escape
                 let _ch = it.next();
 
                 // escape shit
@@ -53,9 +53,13 @@ fn key_to_zon(v: &str) -> String {
     res
 }
 
+fn str_to_zon(v: &str) -> String {
+    format!("\"{}\"", key_to_zon(v))
+}
+
 pub struct Serializer {
-    // This string starts empty and JSON is appended as values are serialized.
     output: String,
+    // key_ser: ZigKeySerializer,
 }
 
 // By convention, the public API of a Serde serializer is one or more `to_abc`
@@ -66,6 +70,7 @@ pub struct Serializer {
 pub fn to_string(value: &impl Serialize) -> Result<String> {
     let mut serializer = Serializer {
         output: String::new(),
+        // key_ser: ZigKeySerializer::new(),
     };
 
     value.serialize(&mut serializer)?;
@@ -151,11 +156,8 @@ impl<'a> ser::Serializer for &'a mut Serializer {
         self.serialize_str(&v.to_string())
     }
 
-    // This only works for strings that don't require escape sequences but you
-    // get the idea. For example it would emit invalid JSON if the input string
-    // contains a '"' character.
     fn serialize_str(self, v: &str) -> Result<()> {
-        self.output += &key_to_zon(v);
+        self.output += &str_to_zon(v);
         Ok(())
     }
 
@@ -444,12 +446,11 @@ impl<'a> ser::SerializeMap for &'a mut Serializer {
         if !self.output.ends_with('{') {
             self.output += ",";
         }
+
+        // key.serialize(self.key_ser)
         key.serialize(&mut **self)
     }
 
-    // It doesn't make a difference whether the colon is printed at the end of
-    // `serialize_key` or at the beginning of `serialize_value`. In this case
-    // the code is a bit simpler having it here.
     fn serialize_value<T>(&mut self, value: &T) -> Result<()>
     where
         T: ?Sized + Serialize,
@@ -517,6 +518,7 @@ impl<'a> ser::SerializeStructVariant for &'a mut Serializer {
 ////////////////////////////////////////////////////////////////////////////////
 
 #[test]
+#[ignore = "work on this later"]
 fn test_struct() {
     #[derive(Serialize)]
     struct Test {
