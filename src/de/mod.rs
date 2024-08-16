@@ -5,7 +5,7 @@ use serde::de::{
     self, DeserializeSeed, EnumAccess, IntoDeserializer, MapAccess, SeqAccess, VariantAccess,
     Visitor,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer as _};
 
 use crate::error::{Error, Result};
 
@@ -128,6 +128,19 @@ impl<'de> Deserializer<'de> {
             None => Err(Error::EOF),
         }
     }
+
+    fn skip_comment<V>(&mut self, visitor: V) -> Result<V::Value>
+    where
+        V: Visitor<'de>,
+    {
+        if self.input.starts_with("//") {
+            let len = self.input.find('\n').unwrap();
+            self.input = &self.input[len..];
+            self.deserialize_any(visitor)
+        } else {
+            Err(Error::Syntax)
+        }
+    }
 }
 
 impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
@@ -141,6 +154,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         V: Visitor<'de>,
     {
         match self.peek_char()? {
+            '/' => self.skip_comment(visitor),
             'n' => self.deserialize_unit(visitor),
             't' | 'f' => self.deserialize_bool(visitor),
             '"' => self.deserialize_str(visitor),
