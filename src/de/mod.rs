@@ -116,6 +116,12 @@ impl<'de> Deserializer<'de> {
     // Makes no attempt to handle escape sequences. What did you expect? This is
     // example code!
     fn parse_string(&mut self) -> Result<&'de str> {
+        // parse @"strings like this format"
+        if self.next_char()? != '@' {
+            unimplemented!("how are @\"strings\" supposed to translate to rust?")
+            // TODO maybe attempt to parse it but only fail if there are bad chars
+        }
+
         if self.next_char()? != '"' {
             return Err(Error::ExpectedString);
         }
