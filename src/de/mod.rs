@@ -117,7 +117,7 @@ impl<'de> Deserializer<'de> {
     // example code!
     fn parse_string(&mut self) -> Result<&'de str> {
         // parse @"strings like this format"
-        if self.next_char()? == '@' {
+        if self.peek_char()? == '@' {
             unimplemented!("how are @\"strings\" supposed to translate to rust?")
             // TODO maybe attempt to parse it but only fail if there are bad chars
         }
