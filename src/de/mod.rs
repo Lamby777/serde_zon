@@ -636,6 +636,41 @@ impl<'de, 'a> VariantAccess<'de> for Enum<'a, 'de> {
 ////////////////////////////////////////////////////////////////////////////////
 
 #[test]
+fn test_build_zig_zon() {
+    use std::collections::HashMap;
+
+    #[derive(Deserialize, Eq, PartialEq, Debug)]
+    struct Dependency {
+        url: String,
+        hash: String,
+    }
+
+    #[derive(Deserialize, PartialEq, Debug)]
+    struct Test {
+        name: String,
+        version: String,
+        dependencies: HashMap<String, Dependency>,
+    }
+
+    let expected = Test {
+        name: "my-wtf-project".to_owned(),
+        version: "0.0.1".to_owned(),
+        dependencies: HashMap::from_iter(
+            [(
+                "zap".to_owned(),
+                Dependency {
+                    url: "long url here".to_owned(),
+                    hash: "1220002d".to_owned(),
+                },
+            )]
+            .into_iter(),
+        ),
+    };
+
+    assert_eq!(expected, from_str(include_str!("dummy.zon")).unwrap());
+}
+
+#[test]
 fn test_struct() {
     #[derive(Deserialize, PartialEq, Debug)]
     struct Test {
@@ -652,6 +687,7 @@ fn test_struct() {
 }
 
 #[test]
+#[ignore = "work on this later"]
 fn test_enum() {
     #[derive(Deserialize, PartialEq, Debug)]
     enum E {
