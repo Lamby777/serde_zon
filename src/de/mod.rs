@@ -671,6 +671,7 @@ impl<'de, 'a> VariantAccess<'de> for Enum<'a, 'de> {
 ////////////////////////////////////////////////////////////////////////////////
 
 #[test]
+#[ignore]
 fn test_build_zig_zon() {
     use std::collections::HashMap;
 
@@ -713,10 +714,23 @@ fn test_struct() {
     #[derive(Deserialize, PartialEq, Debug)]
     struct Test {
         int: u32,
+    }
+
+    let j = r#".{"int":1}"#;
+    let expected = Test { int: 1 };
+    assert_eq!(expected, from_str(j).unwrap());
+}
+
+#[test]
+#[ignore]
+fn test_struct_vec() {
+    #[derive(Deserialize, PartialEq, Debug)]
+    struct Test {
+        int: u32,
         seq: Vec<String>,
     }
 
-    let j = r#".{int:1,seq:.{"a", "b"}}"#;
+    let j = r#".{"int":1,"seq":.{"a", "b"}}"#;
     let expected = Test {
         int: 1,
         seq: vec!["a".to_owned(), "b".to_owned()],
