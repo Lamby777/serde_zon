@@ -117,7 +117,7 @@ impl<'de> Deserializer<'de> {
     // example code!
     fn parse_string(&mut self) -> Result<&'de str> {
         // parse @"strings like this format"
-        if self.next_char()? != '@' {
+        if self.next_char()? == '@' {
             unimplemented!("how are @\"strings\" supposed to translate to rust?")
             // TODO maybe attempt to parse it but only fail if there are bad chars
         }
@@ -166,8 +166,17 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
             '"' => self.deserialize_str(visitor),
             '0'..='9' => self.deserialize_u64(visitor),
             '-' => self.deserialize_i64(visitor),
-            '[' => self.deserialize_seq(visitor),
-            '{' => self.deserialize_map(visitor),
+
+            '.' => {
+                let opening = self.input.chars().skip(1).next().ok_or(Error::EOF)?;
+
+                return match opening {
+                    '{' => self.deserialize_map(visitor),
+                    '[' => self.deserialize_seq(visitor),
+                    _ => Err(Error::Syntax),
+                };
+            }
+
             _ => Err(Error::Syntax),
         }
     }
@@ -368,7 +377,10 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         V: Visitor<'de>,
     {
         // Parse the opening bracket of the sequence.
-        if self.next_char()? == '[' {
+        let next = self.next_char()? == '.';
+        let next = next && self.next_char()? == '{';
+
+        if next {
             // Give the visitor access to each element of the sequence.
             let value = visitor.visit_seq(CommaSeparated::new(self))?;
             // Parse the closing bracket of the sequence.
