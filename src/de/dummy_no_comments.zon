@@ -1,0 +1,11 @@
+.{
+    .name = "my-wtf-project",
+    .version = "0.0.1",
+
+    .dependencies = .{
+        .zap = .{
+            .url = "some-url",
+            .hash = "1220",
+        },
+    },
+}

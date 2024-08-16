@@ -684,7 +684,10 @@ fn test_build_zig_zon() {
         ),
     };
 
-    assert_eq!(expected, from_str(include_str!("dummy.zon")).unwrap());
+    assert_eq!(
+        expected,
+        from_str(include_str!("dummy_no_comments.zon")).unwrap()
+    );
 }
 
 #[test]
