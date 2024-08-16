@@ -716,8 +716,12 @@ fn test_struct() {
         int: u32,
     }
 
-    let j = r#".{"int":1}"#;
     let expected = Test { int: 1 };
+
+    // both of these should work (with or without quotes)
+    let j = r#".{"int":1}"#;
+    assert_eq!(expected, from_str(j).unwrap());
+    let j = r#".{.int:1}"#;
     assert_eq!(expected, from_str(j).unwrap());
 }
 
@@ -730,7 +734,7 @@ fn test_struct_vec() {
         seq: Vec<String>,
     }
 
-    let j = r#".{"int":1,"seq":.{"a", "b"}}"#;
+    let j = r#".{ .int:1, .seq:.{"a", "b"}}"#;
     let expected = Test {
         int: 1,
         seq: vec!["a".to_owned(), "b".to_owned()],
