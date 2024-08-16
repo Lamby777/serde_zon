@@ -410,7 +410,10 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         V: Visitor<'de>,
     {
         // Parse the opening brace of the map.
-        if self.next_char()? == '{' {
+        let next = self.next_char()? == '.';
+        let next = next && self.next_char()? == '{';
+
+        if next {
             // Give the visitor access to each entry of the map.
             let value = visitor.visit_map(CommaSeparated::new(self))?;
             // Parse the closing brace of the map.
@@ -692,7 +695,7 @@ fn test_struct() {
         seq: Vec<String>,
     }
 
-    let j = r#"{"int":1,"seq":["a","b"]}"#;
+    let j = r#".{int:1,seq:.{"a", "b"}}"#;
     let expected = Test {
         int: 1,
         seq: vec!["a".to_owned(), "b".to_owned()],
